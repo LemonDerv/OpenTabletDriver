@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using OpenTabletDriver.Native.Windows;
 using OpenTabletDriver.Native.Windows.Input;
 using OpenTabletDriver.Plugin;
 using OpenTabletDriver.Plugin.Platform.Keyboard;
@@ -10,9 +12,42 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Keyboard
 
     public class WindowsVirtualKeyboard : IVirtualKeyboard
     {
+        private static readonly HashSet<VirtualKey> _extendedKeys = new HashSet<VirtualKey>
+        {
+            VirtualKey.VK_INSERT,
+            VirtualKey.VK_DELETE,
+            VirtualKey.VK_HOME,
+            VirtualKey.VK_END,
+            VirtualKey.VK_PRIOR,
+            VirtualKey.VK_NEXT,
+            VirtualKey.VK_UP,
+            VirtualKey.VK_DOWN,
+            VirtualKey.VK_LEFT,
+            VirtualKey.VK_RIGHT,
+            VirtualKey.VK_NUMLOCK,
+            VirtualKey.VK_SNAPSHOT,
+            VirtualKey.VK_DIVIDE,
+            VirtualKey.VK_RCONTROL,
+            VirtualKey.VK_RMENU,
+            VirtualKey.VK_LWIN,
+            VirtualKey.VK_RWIN,
+            VirtualKey.VK_APPS,
+            VirtualKey.VK_VOLUME_MUTE,
+            VirtualKey.VK_VOLUME_DOWN,
+            VirtualKey.VK_VOLUME_UP,
+            VirtualKey.VK_MEDIA_NEXT_TRACK,
+            VirtualKey.VK_MEDIA_PREV_TRACK,
+            VirtualKey.VK_MEDIA_STOP,
+            VirtualKey.VK_MEDIA_PLAY_PAUSE,
+        };
+
         private static void KeyEvent(string key, bool isPress)
         {
             var vk = EtoKeysymToVK[key];
+            var flags = isPress ? KEYEVENTF.KEYDOWN : KEYEVENTF.KEYUP;
+            if (_extendedKeys.Contains(vk))
+                flags |= KEYEVENTF.EXTENDEDKEY;
+
             var input = new INPUT
             {
                 type = INPUT_TYPE.KEYBD_INPUT,
@@ -22,7 +57,7 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Keyboard
                     {
                         wVk = (short)vk,
                         wScan = 0,
-                        dwFlags = isPress ? KEYEVENTF.KEYDOWN : KEYEVENTF.KEYUP,
+                        dwFlags = flags,
                         time = 0,
                         dwExtraInfo = UIntPtr.Zero
                     }
@@ -30,9 +65,9 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Keyboard
             };
 
             var inputs = new INPUT[] { input };
-            var result = SendInput((uint)inputs.Length, inputs, INPUT.Size);
-            if (result != inputs.Length)
-                Log.Write("WindowsKeyboard", $"SendInput failed: {result}/{inputs.Length} events inserted", LogLevel.Error);
+            var sent = SendInput((uint)inputs.Length, inputs, INPUT.Size);
+            if (sent != inputs.Length)
+                Log.Write("WindowsVirtualKeyboard", $"SendInput failed to insert {inputs.Length - sent} of {inputs.Length} keyboard event(s). Error: {Marshal.GetLastWin32Error()}", LogLevel.Error);
         }
 
         public void Press(string key)

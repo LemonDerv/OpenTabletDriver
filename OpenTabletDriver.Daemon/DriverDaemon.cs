@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using OpenTabletDriver.Desktop;
 using OpenTabletDriver.Desktop.Binding;
@@ -25,6 +26,8 @@ using OpenTabletDriver.Plugin.Output;
 using OpenTabletDriver.Plugin.Platform.Pointer;
 using OpenTabletDriver.Plugin.Tablet;
 using OpenTabletDriver.SystemDrivers;
+
+#nullable enable
 
 namespace OpenTabletDriver.Daemon
 {
@@ -138,7 +141,7 @@ namespace OpenTabletDriver.Daemon
         public Driver Driver { get; }
         private Settings? Settings { set; get; }
         private Collection<ITool> Tools { set; get; } = new Collection<ITool>();
-        private readonly IUpdater? Updater = DesktopInterop.Updater;
+        private IUpdater Updater = DesktopInterop.Updater;
         private readonly ISleepDetector? SleepDetector = new SleepDetector();
         private Settings? lastValidSettings;
 
@@ -221,7 +224,7 @@ namespace OpenTabletDriver.Daemon
 
                 Settings = settings ??= Settings.GetDefaults();
 
-                foreach (var dev in Driver.InputDevices)
+                foreach (InputDeviceTree? dev in Driver.InputDevices)
                 {
                     var tabletReference = dev.CreateReference();
                     string group = dev.Properties.Name;
@@ -236,9 +239,6 @@ namespace OpenTabletDriver.Daemon
 
                     if (dev.OutputMode is AbsoluteOutputMode absoluteMode)
                     {
-                        if (profile.AbsoluteModeSettings == null)
-                            throw new InvalidOperationException($"{nameof(AbsoluteModeSettings)} not found");
-
                         SetAbsoluteModeSettings(dev, absoluteMode, profile.AbsoluteModeSettings);
                         if (absoluteMode.Pointer is IPressureHandler)
                             LogPressureState(group, profile);
@@ -248,9 +248,6 @@ namespace OpenTabletDriver.Daemon
 
                     if (dev.OutputMode is RelativeOutputMode relativeMode)
                     {
-                        if (profile.RelativeModeSettings == null)
-                            throw new InvalidOperationException($"{nameof(RelativeModeSettings)} not found");
-
                         SetRelativeModeSettings(dev, relativeMode, profile.RelativeModeSettings);
                         if (relativeMode.Pointer is IPressureHandler)
                             LogPressureState(group, profile);
@@ -318,33 +315,26 @@ namespace OpenTabletDriver.Daemon
                     var recoveredProfile = recoveredSettings.Profiles.GetProfile(profile.Tablet);
                     if (recoveredProfile != null)
                     {
-                        if (profile.AbsoluteModeSettings != null)
+                        recoveredProfile.AbsoluteModeSettings = new AbsoluteModeSettings
                         {
-                            recoveredProfile.AbsoluteModeSettings = new AbsoluteModeSettings
+                            Display = new AreaSettings
                             {
-                                Display = new AreaSettings
-                                {
-                                    Area = profile.AbsoluteModeSettings.Display.Area
-                                },
-                                Tablet = new AreaSettings
-                                {
-                                    Area = profile.AbsoluteModeSettings.Tablet.Area
-                                },
-                                EnableClipping = profile.AbsoluteModeSettings.EnableClipping,
-                                EnableAreaLimiting = profile.AbsoluteModeSettings.EnableAreaLimiting,
-                                LockAspectRatio = profile.AbsoluteModeSettings.LockAspectRatio
-                            };
-                        }
-
-                        if (profile.RelativeModeSettings != null)
+                                Area = profile.AbsoluteModeSettings.Display.Area
+                            },
+                            Tablet = new AreaSettings
+                            {
+                                Area = profile.AbsoluteModeSettings.Tablet.Area
+                            },
+                            EnableClipping = profile.AbsoluteModeSettings.EnableClipping,
+                            EnableAreaLimiting = profile.AbsoluteModeSettings.EnableAreaLimiting,
+                            LockAspectRatio = profile.AbsoluteModeSettings.LockAspectRatio
+                        };
+                        recoveredProfile.RelativeModeSettings = new RelativeModeSettings
                         {
-                            recoveredProfile.RelativeModeSettings = new RelativeModeSettings
-                            {
-                                Sensitivity = profile.RelativeModeSettings.Sensitivity,
-                                RelativeRotation = profile.RelativeModeSettings.RelativeRotation,
-                                ResetTime = profile.RelativeModeSettings.ResetTime
-                            };
-                        }
+                            Sensitivity = profile.RelativeModeSettings.Sensitivity,
+                            RelativeRotation = profile.RelativeModeSettings.RelativeRotation,
+                            ResetTime = profile.RelativeModeSettings.ResetTime
+                        };
                     }
                 }
             }
@@ -417,24 +407,17 @@ namespace OpenTabletDriver.Daemon
         {
             string group = dev.Properties.Name;
 
-            var pressureRewriteFilter = new PressureRewriteFilter
-            {
-                TipPressureThreshold = profile.BindingSettings.TipActivationThreshold,
-                EraserPressureThreshold = profile.BindingSettings.EraserActivationThreshold,
-                MaxPenPressure = dev.Properties.Specifications.Pen.MaxPressure,
-            };
-
             var elements = (from store in profile.Filters
-                            where store is { Enable: true }
-                            let filter = store!.Construct<IPositionedPipelineElement<IDeviceReport>>(outputMode.Tablet)
+                            where store.Enable
+                            let filter = store.Construct<IPositionedPipelineElement<IDeviceReport>>(outputMode.Tablet)
                             where filter != null
                             select filter!).ToArray();
 
-            outputMode.Elements = elements.Prepend(pressureRewriteFilter).Append(bindingHandler).ToList();
+            outputMode.Elements = elements.Append(bindingHandler).ToList();
 
             foreach (var filter in elements)
             {
-                var pluginSettings = profile.Filters.First(x => x?.Path == filter.GetType().FullName);
+                var pluginSettings = profile.Filters.First(x => x.Path == filter.GetType().FullName);
                 if (pluginSettings == null) continue;
 
                 Log.Write(group, $"Filter Settings {pluginSettings.GetHumanReadableString()}");
@@ -491,10 +474,6 @@ namespace OpenTabletDriver.Daemon
         {
             string group = dev.Properties.Name;
             var tabletReference = outputMode.Tablet;
-
-            Debug.Assert(tabletReference != null,
-                "tabletReference was null. This was expected to be checked by the sender");
-
             var bindingHandler = new BindingHandler(tabletReference);
 
             var bindingServiceProvider = new ServiceManager();
@@ -517,24 +496,27 @@ namespace OpenTabletDriver.Daemon
             var tip = bindingHandler.Tip = new ThresholdBindingState
             {
                 Binding = settings.TipButton?.Construct<IBinding>(bindingServiceProvider, tabletReference),
+
+                ActivationThreshold = settings.TipActivationThreshold
             };
 
             if (tip.Binding != null)
             {
-                Log.Write(group, $"Tip Binding: [{tip.Binding}]@{settings.TipActivationThreshold}%");
+                Log.Write(group, $"Tip Binding: [{tip.Binding}]@{tip.ActivationThreshold}%");
             }
 
             var eraser = bindingHandler.Eraser = new ThresholdBindingState
             {
                 Binding = settings.EraserButton?.Construct<IBinding>(bindingServiceProvider, tabletReference),
+                ActivationThreshold = settings.EraserActivationThreshold
             };
 
             if (eraser.Binding != null)
             {
-                Log.Write(group, $"Eraser Binding: [{eraser.Binding}]@{settings.EraserActivationThreshold}%");
+                Log.Write(group, $"Eraser Binding: [{eraser.Binding}]@{eraser.ActivationThreshold}%");
             }
 
-            if (settings.PenButtons.Any(b => b?.Path != null))
+            if (settings.PenButtons != null && settings.PenButtons.Any(b => b?.Path != null))
             {
                 SetBindingHandlerCollectionSettings(bindingServiceProvider, settings.PenButtons, bindingHandler.PenButtons, tabletReference, settings.EnableDragBindings);
                 Log.Write(group, $"Pen Bindings: " + string.Join(", ", bindingHandler.PenButtons.Select(b => b.Value?.Binding)));
@@ -543,7 +525,7 @@ namespace OpenTabletDriver.Daemon
                     Log.Write(group, "Pen Bindings are configured as drag-only (requires pen pressure to activate)");
             }
 
-            if (settings.AuxButtons.Any(b => b?.Path != null))
+            if (settings.AuxButtons != null && settings.AuxButtons.Any(b => b?.Path != null))
             {
                 SetBindingHandlerCollectionSettings(bindingServiceProvider, settings.AuxButtons, bindingHandler.AuxButtons, tabletReference);
                 Log.Write(group, $"Express Key Bindings: " + string.Join(", ", bindingHandler.AuxButtons.Select(b => b.Value?.Binding)));
@@ -588,7 +570,7 @@ namespace OpenTabletDriver.Daemon
                     Log.Write(group, $"Wheel {wheelIndex + 1} Counter-Clockwise Rotation: [{counterClockwiseRotation.Binding}]@{counterClockwiseRotation.ActivationThreshold}°");
             }
 
-            if (settings.MouseButtons.Any(b => b?.Path != null))
+            if (settings.MouseButtons != null && settings.MouseButtons.Any(b => b?.Path != null))
             {
                 SetBindingHandlerCollectionSettings(bindingServiceProvider, settings.MouseButtons, bindingHandler.MouseButtons, tabletReference);
                 Log.Write(group, $"Mouse Button Bindings: [" + string.Join("], [", bindingHandler.MouseButtons.Select(b => b.Value?.Binding)) + "]");
@@ -606,7 +588,7 @@ namespace OpenTabletDriver.Daemon
 
             if (scrollUp.Binding != null || scrollDown.Binding != null)
             {
-                Log.Write(group, $"Mouse Scroll: Up: [{scrollUp.Binding}] Down: [{scrollDown.Binding}]");
+                Log.Write(group, $"Mouse Scroll: Up: [{scrollUp?.Binding}] Down: [{scrollDown?.Binding}]");
             }
 
             return bindingHandler;
@@ -636,9 +618,9 @@ namespace OpenTabletDriver.Daemon
 
             if (Settings != null)
             {
-                foreach (var store in Settings.Tools)
+                foreach (PluginSettingStore store in Settings.Tools)
                 {
-                    if (store is not { Enable: true })
+                    if (store.Enable == false)
                         continue;
 
                     var tool = store.Construct<ITool>();
@@ -683,7 +665,7 @@ namespace OpenTabletDriver.Daemon
             if (tablet == null)
                 throw new IOException("Device not found");
 
-            return Task.FromResult(tablet.GetDeviceString((byte)index) ?? throw new InvalidOperationException($"Unable to look up device string on index {index}"));
+            return Task.FromResult(tablet.GetDeviceString((byte)index));
         }
 
         public Task<IEnumerable<LogMessage>> GetCurrentLog()
@@ -699,7 +681,8 @@ namespace OpenTabletDriver.Daemon
 
         private void PostDebugReport(TabletReference tablet, IDeviceReport report)
         {
-            DeviceReport?.Invoke(this, new DebugReportData(tablet, report));
+            if (report != null && tablet != null)
+                DeviceReport?.Invoke(this, new DebugReportData(tablet, report));
         }
 
         public async Task<SerializedUpdateInfo?> CheckForUpdates()

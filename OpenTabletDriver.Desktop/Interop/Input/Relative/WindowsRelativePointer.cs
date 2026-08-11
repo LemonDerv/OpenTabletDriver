@@ -6,18 +6,24 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Relative
 {
     public class WindowsRelativePointer : WindowsVirtualMouse, IRelativePointer
     {
-        private Vector2 error;
+        private float errorX;
+        private float errorY;
 
         public void SetPosition(Vector2 delta)
         {
             SetDirty();
 
-            delta += error;
-            error = new Vector2(delta.X % 1, delta.Y % 1);
+            var x = delta.X + errorX;
+            var y = delta.Y + errorY;
+            var dx = (int)x;
+            var dy = (int)y;
+
+            errorX = x - dx;
+            errorY = y - dy;
 
             inputs[0].U.mi.dwFlags |= MOUSEEVENTF.MOVE;
-            inputs[0].U.mi.dx = (int)delta.X;
-            inputs[0].U.mi.dy = (int)delta.Y;
+            inputs[0].U.mi.dx = dx;
+            inputs[0].U.mi.dy = dy;
         }
     }
 }

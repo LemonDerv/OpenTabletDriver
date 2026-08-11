@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OpenTabletDriver.Plugin.Tablet;
 
 namespace OpenTabletDriver.Plugin.Platform.Keyboard

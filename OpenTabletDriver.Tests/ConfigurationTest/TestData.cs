@@ -130,9 +130,7 @@ namespace OpenTabletDriver.Tests.ConfigurationTest
         private static string GetConfigDir([CallerFilePath] string sourceFilePath = "") =>
             Path.GetFullPath(Path.Join(sourceFilePath, "../../../OpenTabletDriver.Configurations/Configurations"));
 
-        private static TabletConfiguration Deserialize(FileInfo configFileInfo) =>
-            Serialization.Deserialize<TabletConfiguration>(configFileInfo) ??
-            throw new InvalidOperationException($"Invalid file {configFileInfo}");
+        private static TabletConfiguration Deserialize(FileInfo configFileInfo) => Serialization.Deserialize<TabletConfiguration>(configFileInfo);
 
         [GeneratedRegex(@"^OpenTabletDriver\.Tablet\..*$", RegexOptions.Compiled)]
         public static partial Regex AvaloniaReportParserPathRegex();

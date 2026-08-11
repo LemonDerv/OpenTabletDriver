@@ -14,7 +14,7 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Absolute
 
         private bool isEraser;
 
-        private readonly EvdevDevice Device;
+        private EvdevDevice Device { set; get; }
 
         private EventCode[] supportedEventCodes =
         [
@@ -35,12 +35,9 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Absolute
 
             Device.EnableType(EventType.EV_ABS);
 
-            var virtualScreen = DesktopInterop.VirtualScreen
-                                ?? throw new InvalidOperationException("Could not get virtual screen");
-
             var xAbs = new input_absinfo
             {
-                maximum = (int)(virtualScreen.Width * RESOLUTION),
+                maximum = (int)(DesktopInterop.VirtualScreen.Width * RESOLUTION),
                 resolution = 100000
             };
             input_absinfo* xPtr = &xAbs;
@@ -48,7 +45,7 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Absolute
 
             var yAbs = new input_absinfo
             {
-                maximum = (int)(virtualScreen.Height * RESOLUTION),
+                maximum = (int)(DesktopInterop.VirtualScreen.Height * RESOLUTION),
                 resolution = 100000
             };
             input_absinfo* yPtr = &yAbs;
@@ -103,8 +100,8 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Absolute
         public void SetPosition(Vector2 pos)
         {
             Device.Write(EventType.EV_KEY, currentTool, 1);
-            Device.Write(EventType.EV_ABS, EventCode.ABS_X, (int)(pos.X * RESOLUTION));
-            Device.Write(EventType.EV_ABS, EventCode.ABS_Y, (int)(pos.Y * RESOLUTION));
+            Device.Write(EventType.EV_ABS, EventCode.ABS_X, (int)Math.Round(pos.X * RESOLUTION));
+            Device.Write(EventType.EV_ABS, EventCode.ABS_Y, (int)Math.Round(pos.Y * RESOLUTION));
         }
 
         public void SetPressure(float percentage)
@@ -175,7 +172,7 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Absolute
             if (_isDisposed) return;
 
             if (disposing)
-                Device.Dispose();
+                Device?.Dispose();
 
             _isDisposed = true;
         }

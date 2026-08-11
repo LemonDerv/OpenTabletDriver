@@ -1,13 +1,25 @@
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace OpenTabletDriver.Plugin.Tablet
 {
-    public struct TiltTabletReport : ITabletReport, ITiltReport
+    public sealed class TiltTabletReport : ITabletReport, ITiltReport
     {
+        [ThreadStatic] private static bool[]? s_cachedButtons;
+
         public TiltTabletReport(byte[] report, bool invertTiltX, bool invertTiltY)
         {
             Raw = report;
+
+            if (report.Length < 12)
+            {
+                Position = Vector2.Zero;
+                Tilt = Vector2.Zero;
+                Pressure = 0;
+                PenButtons = Array.Empty<bool>();
+                return;
+            }
 
             Position = new Vector2
             {
@@ -22,12 +34,11 @@ namespace OpenTabletDriver.Plugin.Tablet
             Pressure = Unsafe.ReadUnaligned<ushort>(ref report[6]);
 
             var penByte = report[1];
-            PenButtons =
-            [
-                penByte.IsBitSet(1),
-                penByte.IsBitSet(2),
-                penByte.IsBitSet(3),
-            ];
+            var buttons = s_cachedButtons ??= new bool[3];
+            buttons[0] = penByte.IsBitSet(1);
+            buttons[1] = penByte.IsBitSet(2);
+            buttons[2] = penByte.IsBitSet(3);
+            PenButtons = buttons;
         }
 
         public TiltTabletReport(byte[] report) : this(report, false, false) { }

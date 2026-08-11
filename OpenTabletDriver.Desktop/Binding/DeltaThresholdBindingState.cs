@@ -1,5 +1,7 @@
 using OpenTabletDriver.Plugin.Tablet;
 
+#nullable enable
+
 namespace OpenTabletDriver.Desktop.Binding
 {
     /// <summary>

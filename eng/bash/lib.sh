@@ -50,7 +50,7 @@ if [ -z "$VERSION_SUFFIX" ]; then
   hash sed &>/dev/null && \
   git rev-parse --is-inside-work-tree &>/dev/null
   then
-    GIT_DESCRIBE="$(git describe --long --tags --dirty --always)"
+    GIT_DESCRIBE="$(git describe --long --tags --dirty)"
 
     # don't set suffix if this is a tagged commit
     COMMIT_DISTANCE_FROM_TAG="$(sed -E s/"${GIT_TAG_REGEX}"/\\8/ <<< "$GIT_DESCRIBE")"
@@ -93,7 +93,7 @@ fi
 
 ### Build Requirements
 
-DOTNET_VERSION="10.0"
+DOTNET_VERSION="8.0"
 
 # could do away with declare -g, but did it anyway for all of them for consistency
 # with NET_RUNTIME (a global variable without initial value in lib.sh)

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using OpenTabletDriver.Plugin.Logging;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin
 {
     public static class Log
@@ -19,10 +21,10 @@ namespace OpenTabletDriver.Plugin
             {
                 if (_output == null && value != null)
                 {
-                    _logAction = WriteLog;
                     foreach (var message in _backlog!)
                         value.Invoke(null, message);
                     _backlog = null;
+                    _logAction = WriteLog;
                 }
 
                 _output += value;

@@ -1,3 +1,5 @@
+using OpenTabletDriver.Plugin.Tablet;
+
 namespace OpenTabletDriver.Plugin.Tablet
 {
     public struct OutOfRangeReport : IDeviceReport

@@ -60,7 +60,10 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Keyboard
                 KeyEvent(key, false);
         }
 
-        public void Dispose() => Device.Dispose();
+        public void Dispose()
+        {
+            Device?.Dispose();
+        }
 
         public IEnumerable<string> SupportedKeys => EtoKeysymToEventCode.Keys;
 

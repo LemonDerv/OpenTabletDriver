@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,18 +88,6 @@ namespace OpenTabletDriver.Tests.ConfigurationTest
                 return false;
             }
 
-            if ((a.Attributes?.TryGetValue("Interface", out string? aInterface) ?? false) && (b.Attributes?.TryGetValue("Interface", out string? bInterface) ?? false))
-            {
-                if (aInterface != bInterface)
-                    return false;
-            }
-
-            if ((a.Attributes?.TryGetValue("HidReports", out string? aHidReports) ?? false) && (b.Attributes?.TryGetValue("HidReports", out string? bHidReports) ?? false))
-            {
-                if (aHidReports != bHidReports)
-                    return false;
-            }
-
             if (a.DeviceStrings is null || a.DeviceStrings.Count == 0 || b.DeviceStrings is null || b.DeviceStrings.Count == 0)
             {
                 return true; // One or both have no device strings, so they match.
@@ -140,7 +129,7 @@ namespace OpenTabletDriver.Tests.ConfigurationTest
                 return IsEqual(x.Identifier, y.Identifier);
             }
 
-            public int GetHashCode(IdentificationContext obj)
+            public int GetHashCode([DisallowNull] IdentificationContext obj)
             {
                 return HashCode.Combine(
                     obj.Identifier.VendorID,

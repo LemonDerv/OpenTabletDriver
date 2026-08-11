@@ -1,3 +1,4 @@
+using System;
 using Eto.Forms;
 
 namespace OpenTabletDriver.UX.Controls.Utilities

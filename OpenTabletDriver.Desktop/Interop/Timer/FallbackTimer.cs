@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using OpenTabletDriver.Plugin.Timers;
 
 using ITimer = OpenTabletDriver.Plugin.Timers.ITimer;
 
@@ -8,14 +9,14 @@ namespace OpenTabletDriver.Desktop.Interop.Timer
 {
     internal class FallbackTimer : ITimer, IDisposable
     {
-        private Thread? threadTimer;
+        private Thread threadTimer;
         private bool runTimer = true;
 
         public float Interval { get; set; }
         public float IgnoreEventIfLateBy { get; set; } = float.MaxValue;
         public bool Enabled => this.threadTimer != null && this.threadTimer.IsAlive;
 
-        public event Action? Elapsed;
+        public event Action Elapsed;
 
         public void Start()
         {
@@ -37,7 +38,7 @@ namespace OpenTabletDriver.Desktop.Interop.Timer
         public void Stop()
         {
             this.runTimer = false;
-            this.threadTimer?.Join();
+            this.threadTimer.Join();
         }
 
         private void ThreadMain()
@@ -55,7 +56,13 @@ namespace OpenTabletDriver.Desktop.Interop.Timer
                 while ((elapsedMilliseconds = (float)stopWatch.Elapsed.TotalMilliseconds)
                         < nextNotification)
                 {
-                    Thread.Yield();
+                    var remaining = nextNotification - elapsedMilliseconds;
+                    if (remaining > 2.0f)
+                        Thread.Sleep(1);
+                    else if (remaining > 0.5f)
+                        Thread.Yield();
+                    else
+                        Thread.SpinWait(10);
                 }
 
                 if (elapsedMilliseconds - nextNotification >= IgnoreEventIfLateBy)

@@ -12,21 +12,26 @@ namespace OpenTabletDriver.UX.Controls.Generic.Reflection
         public TypeDropDown()
         {
             this.ItemTextBinding = Binding.Property<TypeInfo, string>(t => t.GetFriendlyName());
-            this.ItemKeyBinding = Binding.Property<TypeInfo, string>(t => t.FullName!);
+            this.ItemKeyBinding = Binding.Property<TypeInfo, string>(t => t.FullName);
 
             AppInfo.PluginManager.AssembliesChanged += HandleAssembliesChanged;
         }
 
-        public T? ConstructSelectedType()
+        public T ConstructSelectedType(params object[] args)
         {
-            return SelectedItem != null ? AppInfo.PluginManager.ConstructObject<T>(SelectedItem.FullName!) : null;
+            if (SelectedItem != null)
+            {
+                args ??= Array.Empty<object>();
+                return AppInfo.PluginManager.ConstructObject<T>(SelectedItem.FullName);
+            }
+            return null;
         }
 
-        public void Select(Func<T?, bool> predicate)
+        public void Select(Func<T, bool> predicate)
         {
             foreach (TypeInfo type in DataStore)
             {
-                var obj = AppInfo.PluginManager.ConstructObject<T>(type.FullName!);
+                var obj = AppInfo.PluginManager.ConstructObject<T>(type.FullName);
                 if (predicate(obj))
                 {
                     this.SelectedValue = type;
@@ -43,7 +48,9 @@ namespace OpenTabletDriver.UX.Controls.Generic.Reflection
             return query.ToList();
         }
 
-        private void HandleAssembliesChanged(object? sender, EventArgs e) =>
-            Application.Instance.AsyncInvoke(() => this.DataStore = CreateDefaultDataStore());
+        private void HandleAssembliesChanged(object sender, EventArgs e) => Application.Instance.AsyncInvoke(() =>
+        {
+            this.DataStore = CreateDefaultDataStore();
+        });
     }
 }

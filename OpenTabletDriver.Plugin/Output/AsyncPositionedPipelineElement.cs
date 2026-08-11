@@ -6,27 +6,29 @@ using OpenTabletDriver.Plugin.Tablet.Touch;
 using OpenTabletDriver.Plugin.Timers;
 using OpenTabletDriver.Plugin.Timing;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Output
 {
     public abstract class AsyncPositionedPipelineElement<T> : IPositionedPipelineElement<T>, IDisposable
     {
-        private readonly object synchronizationObject = new object();
+        private System.Threading.SpinLock _spinLock = new System.Threading.SpinLock(false);
         private HPETDeltaStopwatch consumeWatch = new HPETDeltaStopwatch(false);
-        private ITimer? scheduler;
+        private ITimer scheduler;
         private float? reportMsAvg;
         private float frequency;
 
         /// <summary>
         /// The current state of the <see cref="AsyncPositionedPipelineElement{T}"/>.
         /// </summary>
-        protected T? State { set; get; }
+        protected T State { set; get; }
 
         public event Action<T>? Emit;
 
         public abstract PipelinePosition Position { get; }
 
         [Resolved]
-        public ITimer? Scheduler
+        public ITimer Scheduler
         {
             set
             {
@@ -36,12 +38,17 @@ namespace OpenTabletDriver.Plugin.Output
                 {
                     this.scheduler.Elapsed += () =>
                     {
-                        lock (synchronizationObject)
+                        bool lockTaken = false;
+                        try
                         {
+                            _spinLock.Enter(ref lockTaken);
                             UpdateState();
                         }
+                        finally
+                        {
+                            if (lockTaken) _spinLock.Exit(false);
+                        }
                     };
-                    this.scheduler.Interval = 1000 / Frequency;
                     this.scheduler.Start();
                 }
             }
@@ -54,10 +61,10 @@ namespace OpenTabletDriver.Plugin.Output
             set
             {
                 this.frequency = value;
+                if (Scheduler?.Enabled == true)
+                    Scheduler.Stop();
                 if (Scheduler != null)
                 {
-                    if (Scheduler is { Enabled: true })
-                        Scheduler.Stop();
                     Scheduler.Interval = 1000f / value;
                     Scheduler.Start();
                 }
@@ -65,22 +72,25 @@ namespace OpenTabletDriver.Plugin.Output
             get => this.frequency;
         }
 
-        public void Consume(T? value)
+        public void Consume(T value)
         {
-            if (!FilterState(value))
-            {
-                if (value != null)
-                    Emit?.Invoke(value);
+            // Block DeviceReport and ITouchReport from being consumed for now
+            if (value is DeviceReport or ITouchReport)
                 return;
-            }
 
-            lock (synchronizationObject)
+            bool lockTaken = false;
+            try
             {
+                _spinLock.Enter(ref lockTaken);
                 State = value;
                 var consumeDelta = (float)consumeWatch.Restart().TotalMilliseconds;
                 if (consumeDelta < 150 && consumeDelta != 0)
                     reportMsAvg = (reportMsAvg + ((consumeDelta - reportMsAvg) * 0.1f)) ?? consumeDelta;
                 ConsumeState();
+            }
+            finally
+            {
+                if (lockTaken) _spinLock.Exit(false);
             }
         }
 
@@ -102,26 +112,6 @@ namespace OpenTabletDriver.Plugin.Output
         /// Call <see cref="PenIsInRange"/> to check if the pen is in range and avoid false emit.
         /// </remarks>
         protected abstract void UpdateState();
-
-        /// <summary>
-        /// Allows the implementer to filter out reports they do not want in state updates.
-        /// Some reports such as <see cref="DeviceReport"/> or <see cref="ITouchReport"/> may consume a large amount of state changes and clog up <see cref="UpdateState"/>. These can be desirable to filter out.
-        /// Filtered reports are not removed from the pipeline, they skip over to the next element. Similar to <see cref="OnEmit"/> but without requiring a state update.
-        /// </summary>
-        /// <remarks>
-        /// By default, <see cref="DeviceReport"/> and <see cref="ITouchReport"/> are filtered out. Override <see cref="FilterState"/> if you need these reports.
-        /// </remarks>
-        protected virtual bool FilterState(T? value)
-        {
-            // Block DeviceReport and ITouchReport from being consumed by default
-            // Avoids timer polls being consumed by tablets that spam idle reports or touch reports without any way of disabling them
-            if (value is DeviceReport or ITouchReport)
-            {
-                return false;
-            }
-
-            return true;
-        }
 
         /// <summary>
         /// Determines if pen is in tablet hover range.

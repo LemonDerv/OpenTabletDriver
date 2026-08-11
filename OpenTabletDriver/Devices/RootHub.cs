@@ -8,6 +8,8 @@ using OpenTabletDriver.Plugin;
 using OpenTabletDriver.Plugin.Components;
 using OpenTabletDriver.Plugin.Devices;
 
+#nullable enable
+
 namespace OpenTabletDriver.Devices
 {
     public class RootHub : ICompositeDeviceHub, IDeviceHub
@@ -29,7 +31,7 @@ namespace OpenTabletDriver.Devices
         private readonly object syncObject = new();
         private readonly HashSet<IDeviceHub> internalHubs;
         private readonly HashSet<IDeviceHub> hubs;
-        private List<IDeviceEndpoint> oldEndpoints = [];
+        private List<IDeviceEndpoint>? oldEndpoints;
         private readonly List<IDeviceEndpoint> endpoints = new();
         private long version;
         private int currentlyDebouncing;
@@ -148,7 +150,7 @@ namespace OpenTabletDriver.Devices
             oldEndpoints = new List<IDeviceEndpoint>(endpoints);
             ForceEnumeration();
             DevicesChanged?.Invoke(this, new DevicesChangedEventArgs(endpoints, oldEndpoints));
-            oldEndpoints.Clear();
+            oldEndpoints = null;
         }
 
         private void ForceEnumeration()

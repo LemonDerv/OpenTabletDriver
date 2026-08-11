@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using OpenTabletDriver.Desktop.Profiles;
 using OpenTabletDriver.Desktop.Reflection;
 
 namespace OpenTabletDriver.Console
@@ -15,8 +13,7 @@ namespace OpenTabletDriver.Console
                 command.Add(addedCommand);
         }
 
-        [return: NotNullIfNotNull("setting")]
-        public static string? Format(this PluginSetting? setting)
+        public static string Format(this PluginSetting setting)
         {
             if (setting == null)
                 return null;
@@ -24,7 +21,7 @@ namespace OpenTabletDriver.Console
             return $"{{ {setting.Property}: {setting.GetValue(typeof(object))} }}";
         }
 
-        public static string? Format(this PluginSettingStore? store)
+        public static string Format(this PluginSettingStore store)
         {
             if (store == null || !store.Enable)
                 return null;
@@ -32,34 +29,24 @@ namespace OpenTabletDriver.Console
             var storeSettings = store.Settings.Select(setting => setting.Format()).ToList();
 
             string prefix = store.Name ?? store.Path;
-            string? suffix = storeSettings.Count == 0 ? null : string.Join(", ", storeSettings);
+            string suffix = storeSettings.Count == 0 ? null : string.Join(", ", storeSettings);
 
             return string.IsNullOrEmpty(suffix) ? $"'{prefix}'" : $"'{prefix}: {suffix}'";
         }
 
-        public static IEnumerable<string> Format(this IEnumerable<PluginSettingStore?> storeCollection, bool showIndex = false)
+        public static IEnumerable<string> Format(this IEnumerable<PluginSettingStore> storeCollection, bool showIndex = false)
         {
-            var nonNullStoreCollection = storeCollection
-                .Where(store => store is not null)
-                .Cast<PluginSettingStore>()
-                .ToList();
-
-            if (nonNullStoreCollection.Count > 0)
+            if (storeCollection.Any(s => s != null))
             {
                 int index = 0;
                 bool empty = true;
-                foreach (var store in nonNullStoreCollection)
+                foreach (var store in storeCollection)
                 {
                     var str = store.Format();
                     if (!string.IsNullOrWhiteSpace(str))
                     {
                         empty = false;
-
-                        if (showIndex)
-                            yield return $"[{index}]: {str}";
-                        else if (store.Enable)
-                            yield return str;
-                        // else nothing if disabled
+                        yield return showIndex ? $"[{index}]: {str}" : store.Format();
                     }
                     index++;
                 }
@@ -69,21 +56,6 @@ namespace OpenTabletDriver.Console
             else
             {
                 yield return "None";
-            }
-        }
-
-        public static IEnumerable<string> Format(this IEnumerable<WheelBindingSettings> wheelBindings)
-        {
-            if (!wheelBindings.Any()) { yield return "None"; }
-            var wheelIndex = 0;
-            foreach (var wheelBinding in wheelBindings)
-            {
-                yield return $"""
-                            Wheel {wheelIndex + 1} Button Bindings: [{string.Join(", ", wheelBinding.WheelButtons.Format())}]
-                            Wheel {wheelIndex + 1} Clockwise Rotation: [{wheelBinding.ClockwiseRotation.Format()}]@{wheelBinding.ClockwiseActivationThreshold}°
-                            Wheel {wheelIndex + 1} Counter-Clockwise Rotation: [{wheelBinding.CounterClockwiseRotation.Format()}]@{wheelBinding.CounterClockwiseActivationThreshold}°
-                            """;
-                wheelIndex++;
             }
         }
     }

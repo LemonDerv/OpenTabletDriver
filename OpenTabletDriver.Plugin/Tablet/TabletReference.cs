@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace OpenTabletDriver.Plugin.Tablet
 {
@@ -9,7 +8,6 @@ namespace OpenTabletDriver.Plugin.Tablet
         {
         }
 
-        [SetsRequiredMembers]
         public TabletReference(
             TabletConfiguration properties,
             IEnumerable<DeviceIdentifier> identifiers
@@ -19,7 +17,7 @@ namespace OpenTabletDriver.Plugin.Tablet
             this.Identifiers = identifiers;
         }
 
-        public required TabletConfiguration Properties { set; get; }
-        public IEnumerable<DeviceIdentifier> Identifiers { set; get; } = [];
+        public TabletConfiguration Properties { set; get; }
+        public IEnumerable<DeviceIdentifier> Identifiers { set; get; }
     }
 }

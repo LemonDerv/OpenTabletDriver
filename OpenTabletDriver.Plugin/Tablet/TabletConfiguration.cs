@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Tablet
 {
     /// <summary>
@@ -14,20 +16,20 @@ namespace OpenTabletDriver.Plugin.Tablet
         /// The tablet's name.
         /// </summary>
         [Required(ErrorMessage = $"Tablet {nameof(Name)} is required")]
-        public required string Name { set; get; } = string.Empty;
+        public string Name { set; get; } = string.Empty;
 
         /// <summary>
         /// The tablet's specifications.
         /// </summary>
         [Required(ErrorMessage = $"Tablet {nameof(Specifications)} is required")]
-        public required TabletSpecifications Specifications { set; get; }
+        public TabletSpecifications Specifications { set; get; } = new TabletSpecifications();
 
         /// <summary>
         /// The digitizer device identifier.
         /// </summary>
         [Required(ErrorMessage = $"Tablet {nameof(DigitizerIdentifiers)} are required")]
         [MinLength(1, ErrorMessage = "Requires at least 1 identifier")]
-        public required List<DeviceIdentifier> DigitizerIdentifiers { set; get; }
+        public List<DeviceIdentifier> DigitizerIdentifiers { set; get; } = new List<DeviceIdentifier>();
 
         /// <summary>
         /// The auxiliary device identifier.

@@ -12,6 +12,26 @@ $ErrorActionPreference = "Stop";
 $PrevPath = $(Get-Location).Path;
 $nl = [Environment]::NewLine;
 
+function asBool {
+    param ($value)
+
+    if ($value -is [bool]) {
+        return $value;
+    }
+
+    switch ("$value".ToLowerInvariant()) {
+        "true" { return $true; }
+        "1" { return $true; }
+        "false" { return $false; }
+        "0" { return $false; }
+        default { return [bool]$value; }
+    }
+}
+
+$isRelease = asBool $isRelease;
+$isPackage = asBool $isPackage;
+$isPortable = asBool $isPortable;
+
 $Projects = @(
     "OpenTabletDriver.Daemon",
     "OpenTabletDriver.Console"
@@ -39,10 +59,16 @@ if (!($isRelease)) {
 
 Write-Output "The powershell script is deprecated! Please use the BASH build system instead"
 
-$gitVersion = "$(git describe --tags --abbrev=0)"
-if (Test-Path variable:gitVersion) {
+$prevErrorActionPreference = $ErrorActionPreference;
+$ErrorActionPreference = "Continue";
+$gitVersion = $(git describe --tags --abbrev=0 2>$null)
+$gitDescribeExitCode = $LASTEXITCODE;
+$ErrorActionPreference = $prevErrorActionPreference;
+if ($gitDescribeExitCode -eq 0 -and ![string]::IsNullOrWhiteSpace($gitVersion)) {
   $gitVersion = $gitVersion.replace('v','');
   Write-Output "Git reports version $gitVersion";
+} else {
+  $gitVersion = $null;
 }
 
 function exitWithError {
@@ -104,7 +130,7 @@ Write-Output "${nl}Build finished! Binaries created in $output";
 if ($isPackage) {
     Write-Output "${nl}Creating package...";
     Copy-Item -Path $PSScriptRoot/convert_to_portable.bat -Destination $output;
-    if (Test-Path variable:gitVersion) {
+    if (![string]::IsNullOrWhiteSpace($gitVersion)) {
       $zipPath = "$output/OpenTabletDriver-$gitVersion_$netRuntime.zip";
     } else {
       Write-Output "${nl}Unable to determine release version, using fallback naming for zip";

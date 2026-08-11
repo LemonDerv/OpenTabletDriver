@@ -22,12 +22,6 @@
         100,
         123
       ]
-    },
-    {
-      "VendorID": 3793,
-      "ProductID": 30753,
-      "InputReportLength": 10,
-      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Bosto.BostoReportParser"
     }
   ],
   "Attributes": {

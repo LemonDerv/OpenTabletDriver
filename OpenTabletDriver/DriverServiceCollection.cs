@@ -6,6 +6,8 @@ using OpenTabletDriver.Configurations;
 using OpenTabletDriver.Devices;
 using OpenTabletDriver.Plugin.Components;
 
+#nullable enable
+
 namespace OpenTabletDriver
 {
     public class DriverServiceCollection : ServiceCollection

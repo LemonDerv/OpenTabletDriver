@@ -1,6 +1,8 @@
+using System;
 using System.Diagnostics;
 using Eto.Forms;
 using OpenTabletDriver.Desktop.Profiles;
+using OpenTabletDriver.Plugin.Tablet;
 using OpenTabletDriver.UX.Controls.Generic;
 
 namespace OpenTabletDriver.UX.Controls.Bindings

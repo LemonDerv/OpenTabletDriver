@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OpenTabletDriver.Plugin.Devices
 {
@@ -10,10 +12,10 @@ namespace OpenTabletDriver.Plugin.Devices
         int OutputReportLength { get; }
         int FeatureReportLength { get; }
 
-        string? Manufacturer { get; }
-        string? ProductName { get; }
-        string? FriendlyName { get; }
-        string? SerialNumber { get; }
+        string Manufacturer { get; }
+        string ProductName { get; }
+        string FriendlyName { get; }
+        string SerialNumber { get; }
 
         string DevicePath { get; }
         bool CanOpen { get; }
@@ -21,6 +23,6 @@ namespace OpenTabletDriver.Plugin.Devices
 
         IDeviceEndpointStream Open();
 
-        string? GetDeviceString(byte index);
+        string GetDeviceString(byte index);
     }
 }

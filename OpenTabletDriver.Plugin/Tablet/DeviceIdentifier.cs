@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Tablet
 {
     public class DeviceIdentifier

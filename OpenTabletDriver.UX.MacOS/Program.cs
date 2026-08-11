@@ -1,4 +1,5 @@
 using System;
+using Eto.Forms;
 
 namespace OpenTabletDriver.UX.MacOS
 {
@@ -9,7 +10,7 @@ namespace OpenTabletDriver.UX.MacOS
         {
             if (PermissionHelper.HasPermissions())
             {
-                App.Run("OpenTabletDriver.UX.MacOS.Platform, OpenTabletDriver.UX.MacOS", args);
+                App.Run(Eto.Platforms.Mac64, args);
             }
         }
     }

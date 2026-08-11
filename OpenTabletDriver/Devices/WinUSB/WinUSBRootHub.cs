@@ -27,7 +27,7 @@ namespace OpenTabletDriver.Devices.WinUSB
 
         private readonly CM_NOTIFY_CALLBACK _callback;
         private readonly GCHandle _callbackPin;
-        private List<WinUSBInterface> _oldDevices = [];
+        private List<WinUSBInterface> _oldDevices;
         private List<WinUSBInterface> _currentDevices;
         private readonly Dictionary<Guid, SafeCmNotificationHandle> _notificationHandles = new();
 
@@ -52,7 +52,7 @@ namespace OpenTabletDriver.Devices.WinUSB
                 EnumerateAllDevicesWithGuid(_currentDevices, guid);
         }
 
-        public event EventHandler<DevicesChangedEventArgs>? DevicesChanged;
+        public event EventHandler<DevicesChangedEventArgs> DevicesChanged;
 
         public IEnumerable<IDeviceEndpoint> GetDevices()
         {
@@ -109,10 +109,9 @@ namespace OpenTabletDriver.Devices.WinUSB
                 var winUsbInterface = new WinUSBInterface(devicePath);
                 list.Add(winUsbInterface);
             }
-            catch (Exception ex)
+            catch
             {
                 Log.Write("WinUSB", $"Cannot create device for '{devicePath}'");
-                Log.Exception(ex);
             }
         }
 

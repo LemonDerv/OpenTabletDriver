@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using Eto.Forms;
 using OpenTabletDriver.UX.Controls.Generic;
 using OpenTabletDriver.UX.Controls.Generic.Text;
@@ -35,7 +36,7 @@ namespace OpenTabletDriver.UX.Controls
             this.slider.MaxValue = 100; // as default only
         }
 
-        public event EventHandler<EventArgs>? ValueChanged;
+        public event EventHandler<EventArgs> ValueChanged;
 
         private readonly Slider slider = new();
 

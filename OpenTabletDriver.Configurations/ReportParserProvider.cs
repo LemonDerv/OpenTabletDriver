@@ -30,8 +30,7 @@ namespace OpenTabletDriver.Configurations
 
         private static Func<IReportParser<IDeviceReport>> GetConstructor(Type reportParserType)
         {
-            return () => (IReportParser<IDeviceReport>)(Activator.CreateInstance(reportParserType)
-                                                        ?? throw new InvalidOperationException($"Unable to create instance of {reportParserType}"));
+            return () => (IReportParser<IDeviceReport>)Activator.CreateInstance(reportParserType);
         }
 
         private static Dictionary<string, Func<IReportParser<IDeviceReport>>> CreateParsersFromAssembly(params Assembly[] assemblies)
@@ -39,7 +38,7 @@ namespace OpenTabletDriver.Configurations
             return assemblies.SelectMany(asm => asm.ExportedTypes)
                 .Where(t => t.IsAssignableTo(typeof(IReportParser<IDeviceReport>)))
                 .ToDictionary(
-                    t => t.FullName!,
+                    t => t.FullName,
                     GetConstructor
                 );
         }

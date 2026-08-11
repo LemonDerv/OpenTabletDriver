@@ -8,6 +8,9 @@ namespace OpenTabletDriver.Configurations.Parsers.UCLogic
     {
         public IDeviceReport Parse(byte[] data)
         {
+            if (data.Length < 2)
+                return new DeviceReport(data);
+
             return data[1] switch
             {
                 0xe0 => new UCLogicAuxReport(data),

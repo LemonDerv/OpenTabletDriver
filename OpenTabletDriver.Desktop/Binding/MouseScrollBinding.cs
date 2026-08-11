@@ -8,6 +8,8 @@ using OpenTabletDriver.Plugin.Platform.Pointer;
 using OpenTabletDriver.Plugin.Tablet;
 using OpenTabletDriver.Plugin.Timers;
 
+#nullable enable
+
 namespace OpenTabletDriver.Desktop.Binding
 {
     [PluginName(PLUGIN_NAME)]

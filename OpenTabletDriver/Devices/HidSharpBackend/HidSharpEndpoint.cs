@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using HidSharp;
 using HidSharp.Reports;
@@ -32,7 +34,7 @@ namespace OpenTabletDriver.Devices.HidSharpBackend
         public bool CanOpen => device.SafeGet(d => d.CanOpen, false);
         public IDictionary<string, string> DeviceAttributes => GetDeviceAttributes(DevicePath, () => device.GetReportDescriptor());
 
-        public IDeviceEndpointStream Open() => device.TryOpen(out var stream) ? new HidSharpEndpointStream(stream) : throw new InvalidOperationException("Unable to open device stream");
+        public IDeviceEndpointStream Open() => device.TryOpen(out var stream) ? new HidSharpEndpointStream(stream) : null;
         public string GetDeviceString(byte index) => device.GetDeviceString(index);
 
         private static Dictionary<string, string> GetDeviceAttributes(string devicePath, Func<ReportDescriptor> reportDescriptorFunc)

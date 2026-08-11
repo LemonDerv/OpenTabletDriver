@@ -1,9 +1,8 @@
 using OpenTabletDriver.Plugin.Tablet;
-using OpenTabletDriver.Plugin.Tablet.Wheel;
 
 namespace OpenTabletDriver.Configurations.Parsers.Wacom.Bamboo
 {
-    public struct BambooAuxReport : IAuxReport, IAbsoluteWheelReport
+    public struct BambooAuxReport : IAuxReport
     {
         public BambooAuxReport(byte[] report)
         {
@@ -18,11 +17,10 @@ namespace OpenTabletDriver.Configurations.Parsers.Wacom.Bamboo
                 auxByte.IsBitSet(6),
             ];
 
-            AnalogPositions = [report[8].IsBitSet(7) ? (uint)(report[8] & 0x7f) : null];
+            // wheel = report[8] & 0x7f
         }
 
         public byte[] Raw { set; get; }
         public bool[] AuxButtons { set; get; }
-        public uint?[] AnalogPositions { set; get; }
     }
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using OpenTabletDriver.Native.Linux;
 using OpenTabletDriver.Native.Linux.Evdev;
@@ -9,7 +8,6 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Relative
 {
     public class EvdevRelativePointer : EvdevVirtualMouse, IRelativePointer
     {
-        [SetsRequiredMembers]
         public EvdevRelativePointer()
         {
             Device = new EvdevDevice("OpenTabletDriver Virtual Mouse");

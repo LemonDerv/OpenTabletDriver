@@ -43,7 +43,7 @@ namespace OpenTabletDriver.Desktop.Reflection
 
         public IReadOnlyCollection<DesktopPluginContext> GetLoadedPlugins() => Plugins;
 
-        public event EventHandler? AssembliesChanged;
+        public event EventHandler AssembliesChanged;
 
         public void Clean()
         {
@@ -167,15 +167,8 @@ namespace OpenTabletDriver.Desktop.Reflection
                 default:
                     throw new InvalidOperationException($"Unsupported archive type: {file.Extension}");
             }
-
-            bool result;
-            if (pluginDir.Exists)
-            {
-                var context = Plugins.First(ctx => ctx.Directory.FullName == pluginDir.FullName);
-                result = UpdatePlugin(context, tempDir);
-            }
-            else
-                result = InstallPlugin(pluginDir, tempDir);
+            var context = Plugins.FirstOrDefault(ctx => ctx.Directory.FullName == pluginDir.FullName);
+            var result = pluginDir.Exists ? UpdatePlugin(context, tempDir) : InstallPlugin(pluginDir, tempDir);
 
             if (!TemporaryDirectory.GetFileSystemInfos().Any())
                 Directory.Delete(TemporaryDirectory.FullName, true);
@@ -201,14 +194,8 @@ namespace OpenTabletDriver.Desktop.Reflection
 
             sourceDir.Refresh();
 
-            bool result;
-            if (targetDir.Exists)
-            {
-                var context = Plugins.First(ctx => ctx.Directory.FullName == targetDir.FullName);
-                result = UpdatePlugin(context, sourceDir);
-            }
-            else
-                result = InstallPlugin(targetDir, sourceDir);
+            var context = Plugins.FirstOrDefault(ctx => ctx.Directory.FullName == targetDir.FullName);
+            var result = targetDir.Exists ? UpdatePlugin(context, sourceDir) : InstallPlugin(targetDir, sourceDir);
 
             await using (var fs = File.Create(metadataPath))
                 Serialization.Serialize(fs, metadata);
@@ -228,6 +215,9 @@ namespace OpenTabletDriver.Desktop.Reflection
 
         public bool UninstallPlugin(DesktopPluginContext plugin)
         {
+            if (plugin == null)
+                return false;
+
             var random = new Random();
             if (!Directory.Exists(TrashDirectory.FullName))
                 TrashDirectory.Create();

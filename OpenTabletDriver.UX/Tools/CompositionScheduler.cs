@@ -53,10 +53,10 @@ namespace OpenTabletDriver.UX.Tools
 
         private static void OnCompose()
         {
-            Compose?.Invoke(null, EventArgs.Empty);
+            Compose?.Invoke(null, null);
         }
 
         private static bool running;
-        private static event EventHandler? Compose;
+        private static event EventHandler Compose;
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +16,7 @@ namespace OpenTabletDriver.Configurations
 
             TabletConfigurations = asm.GetManifestResourceNames()
                 .Where(path => path.Contains(".json"))
-                .Select(path => Deserialize(jsonSerializer, asm.GetManifestResourceStream(path)!)) // null check suppressed as GetManifestResourceNames only returns resources visible to the caller
+                .Select(path => Deserialize(jsonSerializer, asm.GetManifestResourceStream(path)))
                 .ToArray();
         }
 
@@ -27,7 +26,7 @@ namespace OpenTabletDriver.Configurations
         {
             using var reader = new StreamReader(stream);
             using var jsonReader = new JsonTextReader(reader);
-            return jsonSerializer.Deserialize<TabletConfiguration>(jsonReader) ?? throw new InvalidOperationException("Unable to deserialize tablet configuration from stream");
+            return jsonSerializer.Deserialize<TabletConfiguration>(jsonReader);
         }
     }
 }

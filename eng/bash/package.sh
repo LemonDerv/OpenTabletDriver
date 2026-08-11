@@ -59,14 +59,10 @@ while [ ${#remaining_args[@]} -gt 0 ]; do
 done
 
 if [ -z "${NET_RUNTIME:-}" ]; then
-  case "${MACHTYPE}" in
-    aarch64*) arch="arm64" ;;
-    *) arch="x64" ;;
-  esac
   if is_musl_based_distro; then # is this command even portable?
-    NET_RUNTIME="linux-musl-${arch}"
+    NET_RUNTIME="linux-musl-x64"
   else
-    NET_RUNTIME="linux-${arch}"
+    NET_RUNTIME="linux-x64"
   fi
   echo "WARN: You must specify a runtime! Falling back to '${NET_RUNTIME}'"
 fi

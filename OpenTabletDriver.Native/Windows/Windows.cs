@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using OpenTabletDriver.Native.Windows.Input;
 using OpenTabletDriver.Native.Windows.Timers;
 
@@ -20,7 +21,7 @@ namespace OpenTabletDriver.Native.Windows
         public static extern bool GetMonitorInfo(IntPtr hmon, ref MonitorInfoEx mi);
 
         [DllImport("user32.dll")]
-        public static extern bool EnumDisplaySettings(string? deviceName, int modeNum, ref DevMode devMode);
+        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DevMode devMode);
 
         [DllImport("Shcore.dll")]
         public static extern int GetDpiForMonitor(IntPtr hmon, DpiType dpiType, out uint dpiX, out uint dpiY);
@@ -32,7 +33,7 @@ namespace OpenTabletDriver.Native.Windows
 
         #region Input
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         public static extern uint SendInput(uint nInputs, [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs, int cbSize);
 
         #endregion
@@ -56,6 +57,33 @@ namespace OpenTabletDriver.Native.Windows
 
         [DllImport("winmm.dll", SetLastError = true)]
         public static extern uint timeKillEvent(uint timerEventId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr CreateWaitableTimerExW(
+            IntPtr lpTimerAttributes,
+            IntPtr lpTimerName,
+            uint dwFlags,
+            uint dwDesiredAccess);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetWaitableTimer(
+            IntPtr hTimer,
+            ref long lpDueTime,
+            int lPeriod,
+            IntPtr pfnCompletionRoutine,
+            IntPtr lpArgToCompletionRoutine,
+            bool fResume);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool CancelWaitableTimer(IntPtr hTimer);
+
+        public const uint CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = 0x00000002;
+        public const uint TIMER_ALL_ACCESS = 0x1F0003;
+        public const uint WAIT_OBJECT_0 = 0x00000000;
+        public const uint INFINITE = 0xFFFFFFFF;
 
         #endregion
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OpenTabletDriver.Native.OSX;
+using OpenTabletDriver.Native.OSX.Generic;
 using OpenTabletDriver.Native.OSX.Input;
 using OpenTabletDriver.Plugin.Platform.Keyboard;
 
@@ -144,13 +145,13 @@ namespace OpenTabletDriver.Desktop.Interop.Input.Keyboard
             //{ "Menu", CGKeyCode.kVK_ANSI_MENU },
             { "Backslash", CGKeyCode.kVK_ANSI_Backslash },
             { "Plus", CGKeyCode.kVK_ANSI_KeypadPlus },
-            { "Equal", CGKeyCode.kVK_ANSI_Equal },
+            { "Equal", CGKeyCode.kVK_ANSI_KeypadEquals },
             { "Semicolon", CGKeyCode.kVK_ANSI_Semicolon },
             { "Quote", CGKeyCode.kVK_ANSI_Quote },
             { "Comma", CGKeyCode.kVK_ANSI_Comma },
             { "Period", CGKeyCode.kVK_ANSI_Period },
             { "ForwardSlash", CGKeyCode.kVK_ANSI_Slash },
-            { "Slash", CGKeyCode.kVK_ANSI_Slash },
+            { "Slash", CGKeyCode.kVK_ANSI_Backslash },
             { "RightBracket", CGKeyCode.kVK_ANSI_RightBracket },
             { "LeftBracket", CGKeyCode.kVK_ANSI_LeftBracket },
             //{ "ContextMenu", CGKeyCode.kVK_ANSI_MENU },

@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Tablet
 {
     /// <summary>

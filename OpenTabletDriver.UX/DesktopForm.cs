@@ -1,5 +1,6 @@
 using Eto.Drawing;
 using Eto.Forms;
+using OpenTabletDriver.Desktop.Interop;
 using OpenTabletDriver.Interop;
 using OpenTabletDriver.Plugin;
 

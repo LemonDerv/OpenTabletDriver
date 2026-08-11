@@ -5,6 +5,8 @@ using OpenTabletDriver.Plugin.Platform.Pointer;
 using OpenTabletDriver.Plugin.Tablet;
 using OpenTabletDriver.Plugin.Timing;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Output
 {
     /// <summary>
@@ -17,6 +19,7 @@ namespace OpenTabletDriver.Plugin.Output
         private Vector2? lastTransformedPos;
         private Vector2 lastReadPos;
         private bool outOfRange;
+        private float maxPressureReciprocal;
 
         // for handling detection of low resetTimes
         private uint _resets;
@@ -25,7 +28,7 @@ namespace OpenTabletDriver.Plugin.Output
         /// <summary>
         /// The class in which the final relative positioned output is handled.
         /// </summary>
-        public abstract IRelativePointer? Pointer { set; get; }
+        public abstract IRelativePointer Pointer { set; get; }
 
         private Vector2 sensitivity;
 
@@ -77,6 +80,9 @@ namespace OpenTabletDriver.Plugin.Output
 
         protected override Matrix3x2 CreateTransformationMatrix()
         {
+            var pen = Tablet?.Properties?.Specifications?.Pen;
+            maxPressureReciprocal = pen != null && pen.MaxPressure > 0 ? 1.0f / pen.MaxPressure : 0f;
+
             var transform = Matrix3x2.CreateRotation(
                 (float)(-Rotation * System.Math.PI / 180));
 
@@ -138,27 +144,40 @@ namespace OpenTabletDriver.Plugin.Output
 
         protected override void OnOutput(IDeviceReport report)
         {
+            var caps = ResolveCapabilities(report);
+
             // this should be ordered from least to most chance of having a
             // dependency to another pointer property.
-            if (report is IProximityReport proximityReport && Pointer is IHoverDistanceHandler hoverDistanceHandler)
-                hoverDistanceHandler.SetHoverDistance(proximityReport.HoverDistance);
-            if (report is IEraserReport eraserReport && Pointer is IEraserHandler eraserHandler)
-                eraserHandler.SetEraser(eraserReport.Eraser);
-            if (report is ITiltReport tiltReport && Pointer is ITiltHandler tiltHandler && !DisableTilt)
-                tiltHandler.SetTilt(tiltReport.Tilt);
-            if (report is ITabletReport tabletReport && Pointer is IPressureHandler pressureHandler &&
-                !DisablePressure && Tablet?.Properties.Specifications.Pen != null)
-                pressureHandler.SetPressure(tabletReport.Pressure / (float)Tablet.Properties.Specifications.Pen.MaxPressure);
+            if ((caps & ReportCapabilities.Proximity) != 0 && Pointer is IHoverDistanceHandler hoverDistanceHandler)
+                hoverDistanceHandler.SetHoverDistance(((IProximityReport)report).HoverDistance);
+            if ((caps & ReportCapabilities.Eraser) != 0 && Pointer is IEraserHandler eraserHandler)
+                eraserHandler.SetEraser(((IEraserReport)report).Eraser);
+            if ((caps & ReportCapabilities.Tilt) != 0 && Pointer is ITiltHandler tiltHandler && !DisableTilt)
+                tiltHandler.SetTilt(((ITiltReport)report).Tilt);
+            if ((caps & ReportCapabilities.Tablet) != 0 && Pointer is IPressureHandler pressureHandler &&
+                !DisablePressure && maxPressureReciprocal != 0f)
+                pressureHandler.SetPressure(((ITabletReport)report).Pressure * maxPressureReciprocal);
 
             // make sure to set the position last
-            if (Pointer != null && report is IAbsolutePositionReport absReport)
-                Pointer.SetPosition(absReport.Position);
+            if ((caps & ReportCapabilities.AbsolutePosition) != 0)
+                Pointer.SetPosition(((IAbsolutePositionReport)report).Position);
             if (Pointer is ISynchronousPointer synchronousPointer)
             {
-                if (report is OutOfRangeReport)
+                if ((caps & ReportCapabilities.OutOfRange) != 0)
                     synchronousPointer.Reset();
                 synchronousPointer.Flush();
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && Pointer is ISynchronousPointer synchronousPointer)
+            {
+                synchronousPointer.Reset();
+                synchronousPointer.Flush();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

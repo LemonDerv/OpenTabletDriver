@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using OpenTabletDriver.Native.Windows;
 using OpenTabletDriver.Native.Windows.Input;
 using OpenTabletDriver.Plugin;
@@ -95,9 +96,9 @@ namespace OpenTabletDriver.Desktop.Interop.Input
         {
             if (_dirty)
             {
-                var result = SendInput(1, inputs, INPUT.Size);
-                if (result != 1)
-                    Log.Write("WindowsMouse", $"SendInput failed: {result}/1 events inserted", LogLevel.Error);
+                var sent = SendInput(1, inputs, INPUT.Size);
+                if (sent != 1)
+                    Log.Write("WindowsVirtualMouse", $"SendInput failed to insert mouse event. Error: {Marshal.GetLastWin32Error()}", LogLevel.Error);
                 inputs[0].U.mi.dwFlags = 0;
                 inputs[0].U.mi.mouseData = 0;
                 inputs[0].U.mi.dx = 0;
@@ -108,6 +109,11 @@ namespace OpenTabletDriver.Desktop.Interop.Input
 
         public void Reset()
         {
+            MouseEvent(MOUSEEVENTF.LEFTUP);
+            MouseEvent(MOUSEEVENTF.MIDDLEUP);
+            MouseEvent(MOUSEEVENTF.RIGHTUP);
+            MouseEvent(MOUSEEVENTF.XUP, (uint)XBUTTON.XBUTTON1);
+            MouseEvent(MOUSEEVENTF.XUP, (uint)XBUTTON.XBUTTON2);
         }
     }
 }

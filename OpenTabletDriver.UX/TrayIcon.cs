@@ -21,7 +21,7 @@ namespace OpenTabletDriver.UX
 
             RefreshMenuItems();
 
-            Indicator.Activated += (_, _) =>
+            Indicator.Activated += (object sender, System.EventArgs e) =>
             {
                 window.Show();
                 window.BringToFront();

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
@@ -69,6 +70,8 @@ namespace OpenTabletDriver.Plugin.Tablet
         {
             return objectType == typeof(double) || objectType == typeof(decimal);
         }
+
+#nullable enable
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {

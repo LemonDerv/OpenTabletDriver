@@ -1,13 +1,24 @@
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace OpenTabletDriver.Plugin.Tablet
 {
-    public struct TabletReport : ITabletReport
+    public sealed class TabletReport : ITabletReport
     {
+        [ThreadStatic] private static bool[]? s_cachedButtons;
+
         public TabletReport(byte[] report)
         {
             Raw = report;
+
+            if (report.Length < 8)
+            {
+                Position = Vector2.Zero;
+                Pressure = 0;
+                PenButtons = Array.Empty<bool>();
+                return;
+            }
 
             Position = new Vector2
             {
@@ -16,12 +27,11 @@ namespace OpenTabletDriver.Plugin.Tablet
             };
             Pressure = Unsafe.ReadUnaligned<ushort>(ref report[6]);
 
-            PenButtons =
-            [
-                report[1].IsBitSet(1),
-                report[1].IsBitSet(2),
-                report[1].IsBitSet(3),
-            ];
+            var buttons = s_cachedButtons ??= new bool[3];
+            buttons[0] = report[1].IsBitSet(1);
+            buttons[1] = report[1].IsBitSet(2);
+            buttons[2] = report[1].IsBitSet(3);
+            PenButtons = buttons;
         }
 
         public byte[] Raw { set; get; }

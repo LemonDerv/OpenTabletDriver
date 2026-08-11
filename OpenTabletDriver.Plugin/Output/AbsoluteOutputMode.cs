@@ -3,6 +3,8 @@ using OpenTabletDriver.Plugin.Attributes;
 using OpenTabletDriver.Plugin.Platform.Pointer;
 using OpenTabletDriver.Plugin.Tablet;
 
+#nullable enable
+
 namespace OpenTabletDriver.Plugin.Output
 {
     /// <summary>
@@ -12,12 +14,13 @@ namespace OpenTabletDriver.Plugin.Output
     public abstract class AbsoluteOutputMode : OutputMode
     {
         private Vector2 min, max;
-        private Area? outputArea, inputArea;
+        private Area outputArea, inputArea;
+        private float maxPressureReciprocal;
 
         /// <summary>
         /// The area in which the tablet's input is transformed to.
         /// </summary>
-        public Area? Input
+        public Area Input
         {
             set
             {
@@ -30,7 +33,7 @@ namespace OpenTabletDriver.Plugin.Output
         /// <summary>
         /// The area in which the final processed output is transformed to.
         /// </summary>
-        public Area? Output
+        public Area Output
         {
             set
             {
@@ -43,7 +46,7 @@ namespace OpenTabletDriver.Plugin.Output
         /// <summary>
         /// The class in which the final absolute positioned output is handled.
         /// </summary>
-        public abstract IAbsolutePointer? Pointer { set; get; }
+        public abstract IAbsolutePointer Pointer { set; get; }
 
         /// <summary>
         /// Whether to clip all tablet inputs to the assigned areas.
@@ -66,6 +69,9 @@ namespace OpenTabletDriver.Plugin.Output
         {
             if (Input != null && Output != null && Tablet != null)
             {
+                var pen = Tablet?.Properties?.Specifications?.Pen;
+                maxPressureReciprocal = pen != null && pen.MaxPressure > 0 ? 1.0f / pen.MaxPressure : 0f;
+
                 var transform = CalculateTransformation(Input, Output, Tablet.Properties.Specifications.Digitizer);
 
                 var halfDisplayWidth = Output?.Width / 2 ?? 0;
@@ -117,7 +123,7 @@ namespace OpenTabletDriver.Plugin.Output
         /// Transposes, transforms, and performs all absolute positioning calculations to a <see cref="IAbsolutePositionReport"/>.
         /// </summary>
         /// <param name="report">The <see cref="IAbsolutePositionReport"/> in which to transform.</param>
-        protected override IAbsolutePositionReport? Transform(IAbsolutePositionReport report)
+        protected override IAbsolutePositionReport Transform(IAbsolutePositionReport report)
         {
             // Apply transformation
             var pos = Vector2.Transform(report.Position, this.TransformationMatrix);
@@ -137,27 +143,40 @@ namespace OpenTabletDriver.Plugin.Output
 
         protected override void OnOutput(IDeviceReport report)
         {
+            var caps = ResolveCapabilities(report);
+
             // this should be ordered from least to most chance of having a
             // dependency to another pointer property.
-            if (report is IProximityReport proximityReport && Pointer is IHoverDistanceHandler hoverDistanceHandler)
-                hoverDistanceHandler.SetHoverDistance(proximityReport.HoverDistance);
-            if (report is IEraserReport eraserReport && Pointer is IEraserHandler eraserHandler)
-                eraserHandler.SetEraser(eraserReport.Eraser);
-            if (report is ITiltReport tiltReport && Pointer is ITiltHandler tiltHandler && !DisableTilt)
-                tiltHandler.SetTilt(tiltReport.Tilt);
-            if (report is ITabletReport tabletReport && Pointer is IPressureHandler pressureHandler &&
-                !DisablePressure && Tablet?.Properties.Specifications.Pen != null)
-                pressureHandler.SetPressure(tabletReport.Pressure / (float)Tablet.Properties.Specifications.Pen.MaxPressure);
+            if ((caps & ReportCapabilities.Proximity) != 0 && Pointer is IHoverDistanceHandler hoverDistanceHandler)
+                hoverDistanceHandler.SetHoverDistance(((IProximityReport)report).HoverDistance);
+            if ((caps & ReportCapabilities.Eraser) != 0 && Pointer is IEraserHandler eraserHandler)
+                eraserHandler.SetEraser(((IEraserReport)report).Eraser);
+            if ((caps & ReportCapabilities.Tilt) != 0 && Pointer is ITiltHandler tiltHandler && !DisableTilt)
+                tiltHandler.SetTilt(((ITiltReport)report).Tilt);
+            if ((caps & ReportCapabilities.Tablet) != 0 && Pointer is IPressureHandler pressureHandler &&
+                !DisablePressure && maxPressureReciprocal != 0f)
+                pressureHandler.SetPressure(((ITabletReport)report).Pressure * maxPressureReciprocal);
 
             // make sure to set the position last
-            if (Pointer != null && report is IAbsolutePositionReport absReport)
-                Pointer.SetPosition(absReport.Position);
+            if ((caps & ReportCapabilities.AbsolutePosition) != 0)
+                Pointer.SetPosition(((IAbsolutePositionReport)report).Position);
             if (Pointer is ISynchronousPointer synchronousPointer)
             {
-                if (report is OutOfRangeReport)
+                if ((caps & ReportCapabilities.OutOfRange) != 0)
                     synchronousPointer.Reset();
                 synchronousPointer.Flush();
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && Pointer is ISynchronousPointer synchronousPointer)
+            {
+                synchronousPointer.Reset();
+                synchronousPointer.Flush();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

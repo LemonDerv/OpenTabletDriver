@@ -16,17 +16,17 @@ namespace OpenTabletDriver.SystemDrivers
         /// <summary>
         /// The human-friendly name of the driver.
         /// </summary>
-        public required string Name { get; init; }
+        public string Name { get; internal set; }
 
         /// <summary>
         /// Running processes that might be associated with the driver.
         /// </summary>
-        public Process[] Processes { get; init; } = [];
+        public Process[] Processes { get; internal set; }
 
         /// <summary>
         /// Tells how this driver is currently affecting OpenTabletDriver's operations.
         /// </summary>
-        public required DriverStatus Status { get; set; }
+        public DriverStatus Status { get; internal set; }
 
         /// <summary>
         /// Retrieves all the currently active tablet drivers.
@@ -39,7 +39,6 @@ namespace OpenTabletDriver.SystemDrivers
                 new GaomonDriverInfoProvider(),
                 new HuionDriverInfoProvider(),
                 new XPPenDriverInfoProvider(),
-                new RenamedDigimendDriverInfoProvider(),
                 new VeikkDriverInfoDriver(),
                 new OpenTabletDriverInfoProvider(),
                 new TabletDriverInfoProvider()
@@ -51,10 +50,10 @@ namespace OpenTabletDriver.SystemDrivers
             // Remove "UC Logic" duplicates
             return providers.Select(provider => provider.GetDriverInfo())
                 .Where(i => i != null)
-                .GroupBy(i => i!.Name)
-                .Select(g => g.First()).Cast<DriverInfo>();
+                .GroupBy(i => i.Name)
+                .Select(g => g.First());
         }
 
-        internal static Process[] SystemProcesses { get; private set; } = [];
+        internal static Process[] SystemProcesses { get; private set; }
     }
 }

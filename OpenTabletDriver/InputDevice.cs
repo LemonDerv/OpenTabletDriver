@@ -16,6 +16,15 @@ namespace OpenTabletDriver
         public InputDevice(IDriver driver, IDeviceEndpoint device, TabletConfiguration configuration, DeviceIdentifier identifier)
             : base(device, driver.GetReportParser(identifier))
         {
+            if (driver == null || device == null || configuration == null || identifier == null)
+            {
+                string argumentName = driver == null ? nameof(driver) :
+                    device == null ? nameof(device) :
+                    configuration == null ? nameof(configuration) :
+                    nameof(identifier);
+                throw new ArgumentNullException(argumentName);
+            }
+
             Endpoint = device;
             Configuration = configuration;
             Identifier = identifier;
@@ -57,7 +66,7 @@ namespace OpenTabletDriver
 
             foreach (var report in Identifier.FeatureInitReport ?? new List<byte[]>())
             {
-                if (report.Length == 0)
+                if (report == null || report.Length == 0)
                     continue;
 
                 try
@@ -75,7 +84,7 @@ namespace OpenTabletDriver
 
             foreach (var report in Identifier.OutputInitReport ?? new List<byte[]>())
             {
-                if (report.Length == 0)
+                if (report == null || report.Length == 0)
                     continue;
 
                 try
